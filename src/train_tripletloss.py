@@ -41,7 +41,7 @@ import lfw
 
 from tensorflow.python.ops import data_flow_ops
 
-from six.moves import xrange
+from six.moves import xrange  # @UnresolvedImport
 
 def main(args):
   
@@ -75,7 +75,7 @@ def main(args):
         # Read the file containing the pairs used for testing
         pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
         # Get the paths for the corresponding images
-        lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs, args.lfw_file_ext)
+        lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
         
     
     with tf.Graph().as_default():
@@ -245,6 +245,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         i = 0
         emb_array = np.zeros((nrof_examples, embedding_size))
         loss_array = np.zeros((nrof_triplets,))
+        summary = tf.Summary()
+        step = 0
         while i < nrof_batches:
             start_time = time.time()
             batch_size = min(nrof_examples-i*args.batch_size, args.batch_size)
@@ -258,9 +260,9 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             batch_number += 1
             i += 1
             train_time += duration
+            summary.value.add(tag='loss', simple_value=err)
             
         # Add validation loss and accuracy to summary
-        summary = tf.Summary()
         #pylint: disable=maybe-no-member
         summary.value.add(tag='time/selection', simple_value=selection_time)
         summary_writer.add_summary(summary, step)
@@ -473,10 +475,8 @@ def parse_arguments(argv):
     # Parameters for validation on LFW
     parser.add_argument('--lfw_pairs', type=str,
         help='The file containing the pairs to use for validation.', default='data/pairs.txt')
-    parser.add_argument('--lfw_file_ext', type=str,
-        help='The file extension for the LFW dataset.', default='png', choices=['jpg', 'png'])
     parser.add_argument('--lfw_dir', type=str,
-        help='Path to the data directory containing aligned face patches.', default='~/datasets/lfw/lfw_realigned/')
+        help='Path to the data directory containing aligned face patches.', default='')
     parser.add_argument('--lfw_nrof_folds', type=int,
         help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     return parser.parse_args(argv)
